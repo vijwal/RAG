@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "993313377763",
+    "project_id": "rag-data-2d8ce",
+    "storage_bucket": "rag-data-2d8ce.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:993313377763:android:f72238c0baeacf657ba4d6",
+        "android_client_info": {
+          "package_name": "com.example.first_try"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyByXTp8b5RK2ijdSEXbCdZZTTzinYi1h5U"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

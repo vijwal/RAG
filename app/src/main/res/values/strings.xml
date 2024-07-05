@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">first_try</string>
+    <string name="security_question_prompt">Select a Security Question</string>
+    <string name="security_question_1">What was the name of your first pet?</string>
+    <string name="security_question_2">What is your mother\'s maiden name?</string>
+    <string name="security_question_3">What was the name of your elementary school?</string>
+    <string name="security_question_4">In what city were you born?</string>
+    <string name="security_question_5">What was your first car?</string>
+</resources>

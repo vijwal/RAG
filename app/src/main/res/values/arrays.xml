@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="security_questions_array">
+        <item>@string/security_question_1</item>
+        <item>@string/security_question_2</item>
+        <item>@string/security_question_3</item>
+        <item>@string/security_question_4</item>
+        <item>@string/security_question_5</item>
+    </string-array>
+</resources>
