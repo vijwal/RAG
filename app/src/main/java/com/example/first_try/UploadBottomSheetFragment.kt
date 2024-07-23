@@ -1,6 +1,7 @@
 package com.example.first_try
 
 import android.content.Context
+import android.app.Dialog
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -11,7 +12,11 @@ import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 class UploadBottomSheetFragment : BottomSheetDialogFragment() {
 
     interface UploadBottomSheetListener {
-        fun onUploadFile(fileType: String)
+        fun onUploadPdf()
+        fun onUploadYoutube()
+        fun onUploadWebsite()
+        fun onUploadAudio()
+        fun onUploadImage()
     }
 
     private var listener: UploadBottomSheetListener? = null
@@ -20,23 +25,23 @@ class UploadBottomSheetFragment : BottomSheetDialogFragment() {
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
-        return inflater.inflate(R.layout.bottom_sheet_upload, container, false)
+        return inflater.inflate(R.layout.fragment_upload_bottom_sheet, container, false)
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        val btnPdf: Button = view.findViewById(R.id.btn_pdf)
-        val btnYoutube: Button = view.findViewById(R.id.btn_youtube)
-        val btnWebsite: Button = view.findViewById(R.id.btn_website)
-        val btnAudio: Button = view.findViewById(R.id.btn_audio)
-        val btnImage: Button = view.findViewById(R.id.btn_image)
+        val btnPdf: Button = view.findViewById(R.id.upload_pdf_button)
+        val btnYoutube: Button = view.findViewById(R.id.upload_youtube_button)
+        val btnWebsite: Button = view.findViewById(R.id.upload_website_button)
+        val btnAudio: Button = view.findViewById(R.id.upload_audio_button)
+        val btnImage: Button = view.findViewById(R.id.upload_image_button)
 
-        btnPdf.setOnClickListener { listener?.onUploadFile("pdf") }
-        btnYoutube.setOnClickListener { listener?.onUploadFile("youtube") }
-        btnWebsite.setOnClickListener { listener?.onUploadFile("website") }
-        btnAudio.setOnClickListener { listener?.onUploadFile("audio") }
-        btnImage.setOnClickListener { listener?.onUploadFile("image") }
+        btnPdf.setOnClickListener { listener?.onUploadPdf() }
+        btnYoutube.setOnClickListener { listener?.onUploadYoutube() }
+        btnWebsite.setOnClickListener { listener?.onUploadWebsite() }
+        btnAudio.setOnClickListener { listener?.onUploadAudio() }
+        btnImage.setOnClickListener { listener?.onUploadImage() }
     }
 
     override fun onAttach(context: Context) {

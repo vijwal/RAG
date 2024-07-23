@@ -6,31 +6,31 @@
     android:padding="16dp">
 
     <Button
-        android:id="@+id/btn_pdf"
+        android:id="@+id/upload_pdf_button"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Upload PDF File" />
 
     <Button
-        android:id="@+id/btn_youtube"
+        android:id="@+id/upload_youtube_button"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Enter YouTube Link" />
 
     <Button
-        android:id="@+id/btn_website"
+        android:id="@+id/upload_website_button"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Enter Website Link" />
 
     <Button
-        android:id="@+id/btn_audio"
+        android:id="@+id/upload_audio_button"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Upload Audio File (WAV)" />
 
     <Button
-        android:id="@+id/btn_image"
+        android:id="@+id/upload_image_button"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Upload Image" />
