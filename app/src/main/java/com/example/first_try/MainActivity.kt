@@ -47,6 +47,11 @@ class MainActivity : AppCompatActivity(), UploadBottomSheetFragment.UploadBottom
         inputText = findViewById(R.id.input_text)
         outputText = findViewById(R.id.output_text)
 
+        // Make outputText non-editable
+        outputText.isFocusable = false
+        outputText.isFocusableInTouchMode = false
+        outputText.inputType = 0 // Disables input
+
         val uploadFileButton: Button = findViewById(R.id.button5)
         val clearButton: Button = findViewById(R.id.button6)
         val shortSummaryButton: Button = findViewById(R.id.button1)
@@ -135,7 +140,7 @@ class MainActivity : AppCompatActivity(), UploadBottomSheetFragment.UploadBottom
                     "audio/*" -> uploadedAudioData = body
                     "image/*" -> uploadedImageData = body
                 }
-                runOnUiThread { inputText.setText(body) }
+                runOnUiThread { outputText.setText(body) }
             }
         })
     }
@@ -154,7 +159,7 @@ class MainActivity : AppCompatActivity(), UploadBottomSheetFragment.UploadBottom
             override fun onResponse(call: Call, response: Response) {
                 val body = response.body?.string()
                 uploadedYoutubeData = body
-                runOnUiThread { inputText.setText(body) }
+                runOnUiThread { outputText.setText(body) }
             }
         })
     }
@@ -173,7 +178,7 @@ class MainActivity : AppCompatActivity(), UploadBottomSheetFragment.UploadBottom
             override fun onResponse(call: Call, response: Response) {
                 val body = response.body?.string()
                 uploadedWebsiteData = body
-                runOnUiThread { inputText.setText(body) }
+                runOnUiThread { outputText.setText(body) }
             }
         })
     }
@@ -234,12 +239,9 @@ class MainActivity : AppCompatActivity(), UploadBottomSheetFragment.UploadBottom
             return
         }
         data?.let {
-            val json = "{\"data\":\"$it\"}"
-            val requestBody = RequestBody.create("application/json".toMediaTypeOrNull(), json)
-            val request = Request.Builder()
-                .url("$BASE_URL/tagline/")
-                .post(requestBody)
-                .build()
+            val encodedData = Uri.encode(it)
+            val url = "$BASE_URL/generatetagline/?data=$encodedData"
+            val request = Request.Builder().url(url).get().build()
 
             client.newCall(request).enqueue(object : Callback {
                 override fun onFailure(call: Call, e: IOException) {
@@ -288,25 +290,38 @@ class MainActivity : AppCompatActivity(), UploadBottomSheetFragment.UploadBottom
     }
 
     private fun getSavedData(): String? {
-        // Combine data from all upload sources
         return uploadedPdfData ?: uploadedYoutubeData ?: uploadedWebsiteData ?: uploadedAudioData ?: uploadedImageData
     }
 
     private fun getRealPathFromUri(uri: Uri): String {
-        val projection = arrayOf(MediaStore.Images.Media.DATA)
-        contentResolver.query(uri, projection, null, null, null)?.use { cursor ->
-            val column_index = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA)
-            if (cursor.moveToFirst()) {
-                return cursor.getString(column_index)
+        var realPath = ""
+        val cursor = contentResolver.query(uri, null, null, null, null)
+        cursor?.use {
+            if (it.moveToFirst()) {
+                val idx = it.getColumnIndex(MediaStore.Images.ImageColumns.DATA)
+                if (idx != -1) {
+                    realPath = it.getString(idx)
+                }
             }
         }
-        return ""
+        return realPath
     }
 
     private fun isConnected(): Boolean {
         val connectivityManager = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-        val networkCapabilities = connectivityManager.getNetworkCapabilities(connectivityManager.activeNetwork)
-        return networkCapabilities != null && (networkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
-                networkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR))
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val network = connectivityManager.activeNetwork ?: return false
+            val activeNetwork = connectivityManager.getNetworkCapabilities(network) ?: return false
+            return when {
+                activeNetwork.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> true
+                activeNetwork.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) -> true
+                else -> false
+            }
+        } else {
+            @Suppress("DEPRECATION")
+            val networkInfo = connectivityManager.activeNetworkInfo ?: return false
+            @Suppress("DEPRECATION")
+            return networkInfo.isConnected
+        }
     }
 }
