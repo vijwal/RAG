@@ -25,18 +25,26 @@ import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import java.io.File
 import java.io.IOException
+import java.util.concurrent.TimeUnit
 
+interface DialogDismissListener {
+    fun onDialogDismissed()
+}
 class MainActivity : AppCompatActivity(), UploadBottomSheetFragment.UploadBottomSheetListener {
 
     private lateinit var inputText: EditText
     private lateinit var outputText: EditText
     private lateinit var progressBar: ProgressBar
-    private val client = OkHttpClient()
+    private val client = OkHttpClient.Builder()
+        .connectTimeout(30, TimeUnit.SECONDS) // Increase connection timeout
+        .readTimeout(30, TimeUnit.SECONDS)    // Increase read timeout
+        .writeTimeout(30, TimeUnit.SECONDS)   // Increase write timeout
+        .build()
     private val BASE_URL = "https://ragbackend-production.up.railway.app"
     private val requestLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         uri?.let { handleUri(it) }
     }
-
+    private var uploadBottomSheetFragment: UploadBottomSheetFragment? = null
     // Variables to store the data
     private var uploadedPdfData: String? = null
     private var uploadedYoutubeData: String? = null
@@ -52,10 +60,11 @@ class MainActivity : AppCompatActivity(), UploadBottomSheetFragment.UploadBottom
         outputText = findViewById(R.id.output_text)
         progressBar = findViewById(R.id.progressBar)
 
+//        outputText.setText(("output will be here"))
         // Make outputText non-editable
-        outputText.isFocusable = false
-        outputText.isFocusableInTouchMode = false
-        outputText.inputType = 0 // Disables input
+//        outputText.isFocusable = false
+//        outputText.isFocusableInTouchMode = false
+//        outputText.inputType = 0 // Disables input
 
         val uploadFileButton: Button = findViewById(R.id.button5)
         val clearButton: Button = findViewById(R.id.button6)
@@ -67,9 +76,8 @@ class MainActivity : AppCompatActivity(), UploadBottomSheetFragment.UploadBottom
 //        val websiteButton: Button = findViewById(R.id.upload_website_button)
 //        val queryButton: Button = findViewById(R.id.button_query)
 
-        uploadFileButton.setOnClickListener {
-            val uploadBottomSheetFragment = UploadBottomSheetFragment()
-            uploadBottomSheetFragment.show(supportFragmentManager, uploadBottomSheetFragment.tag)
+        uploadFileButton.setOnClickListener {uploadBottomSheetFragment = UploadBottomSheetFragment() // Assign here
+            uploadBottomSheetFragment?.show(supportFragmentManager, uploadBottomSheetFragment?.tag)
         }
 
         clearButton.setOnClickListener {
@@ -89,22 +97,27 @@ class MainActivity : AppCompatActivity(), UploadBottomSheetFragment.UploadBottom
 
     // Implementing UploadBottomSheetListener methods
     override fun onUploadPdf() {
+        uploadBottomSheetFragment?.dismiss()
         requestLauncher.launch("application/pdf")
     }
 
     override fun onUploadYoutube() {
+        uploadBottomSheetFragment?.dismiss()
         showYoutubeLinkDialog()
     }
 
     override fun onUploadWebsite() {
+        uploadBottomSheetFragment?.dismiss()
         showWebsiteLinkDialog()
     }
 
     override fun onUploadAudio() {
+        uploadBottomSheetFragment?.dismiss()
         requestLauncher.launch("audio/*")
     }
 
     override fun onUploadImage() {
+        uploadBottomSheetFragment?.dismiss()
         requestLauncher.launch("image/*")
     }
 
@@ -224,7 +237,7 @@ class MainActivity : AppCompatActivity(), UploadBottomSheetFragment.UploadBottom
             }
 
             override fun onResponse(call: Call, response: Response) {
-                val body = response.body?.string()
+                val body = response.body?.string()?.replace("\\n", "\n")
                 uploadedWebsiteData = body
                 runOnUiThread {
                     hideProgressBar()
@@ -244,8 +257,8 @@ class MainActivity : AppCompatActivity(), UploadBottomSheetFragment.UploadBottom
         }
         showProgressBar()
         data?.let {
-//            val encodedData = Uri.encode(it)
-            val url = "$BASE_URL/shortsummarize/?data=$data"
+            val encodedData = Uri.encode(it)
+            val url = "$BASE_URL/shortsummarize/?data=$encodedData"
             val request = Request.Builder().url(url).get().build()
 
             client.newCall(request).enqueue(object : Callback {
@@ -257,7 +270,7 @@ class MainActivity : AppCompatActivity(), UploadBottomSheetFragment.UploadBottom
                 }
 
                 override fun onResponse(call: Call, response: Response) {
-                    val body = response.body?.string()
+                    val body = response.body?.string()?.replace("\\n", "\n")
                     runOnUiThread {
                         hideProgressBar()
                         outputText.text.clear()
@@ -280,8 +293,8 @@ class MainActivity : AppCompatActivity(), UploadBottomSheetFragment.UploadBottom
         }
         showProgressBar()
         data?.let {
-//            val encodedData = Uri.encode(it)
-            val url = "$BASE_URL/longsummarize/?data=$data"
+            val encodedData = Uri.encode(it)
+            val url = "$BASE_URL/longsummarize/?data=$encodedData"
             val request = Request.Builder().url(url).get().build()
 
             client.newCall(request).enqueue(object : Callback {
@@ -293,7 +306,7 @@ class MainActivity : AppCompatActivity(), UploadBottomSheetFragment.UploadBottom
                 }
 
                 override fun onResponse(call: Call, response: Response) {
-                    val body = response.body?.string()
+                    val body = response.body?.string()?.replace("\\n", "\n")
                     runOnUiThread {
                         hideProgressBar()
                         outputText.text.clear()
@@ -316,8 +329,8 @@ class MainActivity : AppCompatActivity(), UploadBottomSheetFragment.UploadBottom
         }
         showProgressBar()
         data?.let {
-    //            val encodedData = Uri.encode(it)
-            val url = "$BASE_URL/generatetagline/?data=$data"
+                val encodedData = Uri.encode(it)
+            val url = "$BASE_URL/generatetagline/?data=$encodedData"
             val request = Request.Builder().url(url).get().build()
 
             client.newCall(request).enqueue(object : Callback {
@@ -329,7 +342,7 @@ class MainActivity : AppCompatActivity(), UploadBottomSheetFragment.UploadBottom
                 }
 
                 override fun onResponse(call: Call, response: Response) {
-                    val body = response.body?.string()
+                    val body = response.body?.string()?.replace("\\n", "\n")
                     runOnUiThread {
                         hideProgressBar()
                         outputText.text.clear()
@@ -456,7 +469,7 @@ class MainActivity : AppCompatActivity(), UploadBottomSheetFragment.UploadBottom
         showProgressBar()
         val encodedData = Uri.encode(data)
         val encodedQuery = Uri.encode(query)
-        val url = "$BASE_URL/generateResponse/?data=$encodedData&query=$encodedQuery"
+        val url = "$BASE_URL/response/?data=$encodedData&query=$encodedQuery"
         val request = Request.Builder().url(url).get().build()
 
         client.newCall(request).enqueue(object : Callback {
