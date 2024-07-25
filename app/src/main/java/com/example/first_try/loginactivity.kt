@@ -1,6 +1,7 @@
 package com.example.first_try
 
 import android.content.Intent
+import android.content.SharedPreferences
 import android.os.Bundle
 import android.widget.Button
 import android.widget.EditText
@@ -45,6 +46,7 @@ class loginactivity : AppCompatActivity() {
                         val user = snapshot.getValue(User::class.java)
                         if (user != null && BCrypt.verifyer().verify(password.toCharArray(), user.password).verified) {
                             // Login successful (password matches hash)
+                            saveLoginInfo(username)
                             Toast.makeText(this@loginactivity, "Login successful", Toast.LENGTH_SHORT).show()
                             val intent = Intent(this@loginactivity, MainActivity::class.java)
                             startActivity(intent)
@@ -76,5 +78,39 @@ class loginactivity : AppCompatActivity() {
             val intent = Intent(this, ForgotPasswordActivity::class.java)
             startActivity(intent)
         }
+
+        // Check login status
+        checkLoginStatus()
+    }
+
+    private fun saveLoginInfo(username: String) {
+        val sharedPreferences = getSharedPreferences("user_prefs", MODE_PRIVATE)
+        val editor = sharedPreferences.edit()
+        val currentTimeMillis = System.currentTimeMillis()
+        editor.putString("username", username)
+        editor.putLong("login_timestamp", currentTimeMillis)
+        editor.apply()
+    }
+
+    private fun checkLoginStatus() {
+        val sharedPreferences = getSharedPreferences("user_prefs", MODE_PRIVATE)
+        val username = sharedPreferences.getString("username", null)
+        val loginTimestamp = sharedPreferences.getLong("login_timestamp", 0)
+        val currentTimeMillis = System.currentTimeMillis()
+        val thirtyDaysMillis = 30L * 24 * 60 * 60 * 1000 // 30 days in milliseconds
+
+        if (username != null && (currentTimeMillis - loginTimestamp) < thirtyDaysMillis) {
+            // User is logged in and the login is within the 30-day period
+            val intent = Intent(this, MainActivity::class.java)
+            startActivity(intent)
+            finish()
+        }
+    }
+
+    fun clearLoginInfo() {
+        val sharedPreferences = getSharedPreferences("user_prefs", MODE_PRIVATE)
+        val editor = sharedPreferences.edit()
+        editor.clear()
+        editor.apply()
     }
 }
