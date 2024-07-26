@@ -39,6 +39,7 @@ android {
 dependencies {
     implementation(platform("com.google.firebase:firebase-bom:33.1.2"))
     implementation("com.google.firebase:firebase-database-ktx:21.0.0")
+    implementation("androidx.core:core-ktx:1.9.0")
     implementation("com.google.firebase:firebase-analytics")
     implementation("at.favre.lib:bcrypt:0.9.0")
     implementation("com.squareup.okhttp3:okhttp:4.9.3")

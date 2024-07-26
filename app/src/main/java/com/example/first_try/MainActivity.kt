@@ -22,10 +22,13 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.MultipartBody
 import java.io.File
 import java.io.IOException
 import java.util.concurrent.TimeUnit
+import org.json.JSONObject
 
 interface DialogDismissListener {
     fun onDialogDismissed()
@@ -46,6 +49,7 @@ class MainActivity : AppCompatActivity(), UploadBottomSheetFragment.UploadBottom
     }
     private var uploadBottomSheetFragment: UploadBottomSheetFragment? = null
     // Variables to store the data
+    private var currentCall: Call? = null
     private var uploadedPdfData: String? = null
     private var uploadedYoutubeData: String? = null
     private var uploadedWebsiteData: String? = null
@@ -83,6 +87,8 @@ class MainActivity : AppCompatActivity(), UploadBottomSheetFragment.UploadBottom
         clearButton.setOnClickListener {
             inputText.text.clear()
             outputText.text.clear()
+            clearSavedData()
+            cancelUpload()
         }
         shortSummaryButton.setOnClickListener { shortSummarize(getSavedData()) }
         longSummaryButton.setOnClickListener { longSummarize(getSavedData()) }
@@ -120,6 +126,10 @@ class MainActivity : AppCompatActivity(), UploadBottomSheetFragment.UploadBottom
         uploadBottomSheetFragment?.dismiss()
         requestLauncher.launch("image/*")
     }
+    private fun cancelUpload() {
+        currentCall?.cancel()
+        currentCall = null // Reset the call reference
+    }
 
     private fun handleUri(uri: Uri) {
         val fileType = contentResolver.getType(uri) ?: return
@@ -139,11 +149,24 @@ class MainActivity : AppCompatActivity(), UploadBottomSheetFragment.UploadBottom
 
     private fun uploadFile(uri: Uri, mediaType: String) {
         showProgressBar()
-        val file = File(getRealPathFromUri(uri))
-        val requestBody = RequestBody.create(mediaType.toMediaTypeOrNull(), file)
+
+        val inputStream = contentResolver.openInputStream(uri) ?: run {
+            runOnUiThread {
+                hideProgressBar()
+                Toast.makeText(this@MainActivity, "Error opening file", Toast.LENGTH_LONG).show()
+            }
+            return
+        }
+
+        val tempFile = File.createTempFile("temp", null, cacheDir)
+        tempFile.outputStream().use { outputStream ->
+            inputStream.copyTo(outputStream)
+        }
+
+        val requestBody = tempFile.asRequestBody(mediaType.toMediaTypeOrNull())
         val multipartBody = MultipartBody.Builder()
             .setType(MultipartBody.FORM)
-            .addFormDataPart("file", file.name, requestBody)
+            .addFormDataPart("file", tempFile.name, requestBody)
             .build()
 
         val url = when (mediaType) {
@@ -157,16 +180,18 @@ class MainActivity : AppCompatActivity(), UploadBottomSheetFragment.UploadBottom
             .url(url)
             .post(multipartBody)
             .build()
-
-        client.newCall(request).enqueue(object : Callback {
+        currentCall = client.newCall(request)
+        currentCall?.enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) {
                 runOnUiThread {
                     hideProgressBar()
-                    Toast.makeText(this@MainActivity, "Upload failed: ${e.message}", Toast.LENGTH_LONG).show() }
+                    Toast.makeText(this@MainActivity, "Upload failed: ${e.message}", Toast.LENGTH_LONG).show()
+                }
+                tempFile.delete() // Delete temp file on failure
             }
 
             override fun onResponse(call: Call, response: Response) {
-                val body = response.body?.string()
+                val body = response.body?.string()?.replace("\\n", "\n")
                 when (mediaType) {
                     "application/pdf" -> uploadedPdfData = body
                     "audio/*" -> uploadedAudioData = body
@@ -175,7 +200,9 @@ class MainActivity : AppCompatActivity(), UploadBottomSheetFragment.UploadBottom
                 runOnUiThread {
                     hideProgressBar()
                     inputText.text.clear()
-                    inputText.setText(body) }
+                    inputText.setText(body)
+                }
+                tempFile.delete() // Delete temp file after successful upload
             }
         })
     }
@@ -193,8 +220,8 @@ class MainActivity : AppCompatActivity(), UploadBottomSheetFragment.UploadBottom
             .url("$BASE_URL/uploadYoutubevideo/?url=$encodedUrl")
             .post(RequestBody.create(null, ByteArray(0))) // Empty body, URL is in the query
             .build()
-
-        client.newCall(request).enqueue(object : Callback {
+        currentCall = client.newCall(request)
+        currentCall?.enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) {
                 runOnUiThread {
                     hideProgressBar()
@@ -203,7 +230,7 @@ class MainActivity : AppCompatActivity(), UploadBottomSheetFragment.UploadBottom
             }
 
             override fun onResponse(call: Call, response: Response) {
-                val body = response.body?.string()
+                val body = response.body?.string()?.replace("\\n", "\n")
                 uploadedYoutubeData = body
                 runOnUiThread {
                     hideProgressBar()
@@ -227,8 +254,8 @@ class MainActivity : AppCompatActivity(), UploadBottomSheetFragment.UploadBottom
             .url("$BASE_URL/uploadwebsite/?url=$encodedUrl")
             .post(RequestBody.create(null, ByteArray(0))) // Empty body, URL is in the query
             .build()
-
-        client.newCall(request).enqueue(object : Callback {
+        currentCall = client.newCall(request)
+        currentCall?.enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) {
                 runOnUiThread {
                     hideProgressBar()
@@ -255,18 +282,33 @@ class MainActivity : AppCompatActivity(), UploadBottomSheetFragment.UploadBottom
             }
             return
         }
-        showProgressBar()
-        data?.let {
-            val encodedData = Uri.encode(it)
-            val url = "$BASE_URL/shortsummarize/?data=$encodedData"
-            val request = Request.Builder().url(url).get().build()
 
-            client.newCall(request).enqueue(object : Callback {
+        showProgressBar()
+
+        data?.let {
+            // Create JSON payload
+            val jsonPayload = JSONObject().apply {
+                put("data", it)
+            }
+
+            // Create request body
+            val mediaType = "application/json; charset=utf-8".toMediaTypeOrNull()
+            val requestBody = jsonPayload.toString().toRequestBody(mediaType)
+
+            // Build POST request
+            val url = "$BASE_URL/shortsummarize/"
+            val request = Request.Builder()
+                .url(url)
+                .post(requestBody)
+                .build()
+            currentCall = client.newCall(request)
+            currentCall?.enqueue(object : Callback {
                 override fun onFailure(call: Call, e: IOException) {
                     runOnUiThread {
                         hideProgressBar()
                         outputText.text.clear()
-                        outputText.setText("Failed to summarize: ${e.message}") }
+                        outputText.setText("Failed to summarize: ${e.message}")
+                    }
                 }
 
                 override fun onResponse(call: Call, response: Response) {
@@ -274,7 +316,8 @@ class MainActivity : AppCompatActivity(), UploadBottomSheetFragment.UploadBottom
                     runOnUiThread {
                         hideProgressBar()
                         outputText.text.clear()
-                        outputText.setText(body) }
+                        outputText.setText(body)
+                    }
                 }
             })
         } ?: run {
@@ -291,18 +334,33 @@ class MainActivity : AppCompatActivity(), UploadBottomSheetFragment.UploadBottom
             }
             return
         }
-        showProgressBar()
-        data?.let {
-            val encodedData = Uri.encode(it)
-            val url = "$BASE_URL/longsummarize/?data=$encodedData"
-            val request = Request.Builder().url(url).get().build()
 
-            client.newCall(request).enqueue(object : Callback {
+        showProgressBar()
+
+        data?.let {
+            // Create JSON payload
+            val jsonPayload = JSONObject().apply {
+                put("data", it)
+            }
+
+            // Create request body
+            val mediaType = "application/json; charset=utf-8".toMediaTypeOrNull()
+            val requestBody = jsonPayload.toString().toRequestBody(mediaType)
+
+            // Build POST request
+            val url = "$BASE_URL/longsummarize/"
+            val request = Request.Builder()
+                .url(url)
+                .post(requestBody)
+                .build()
+            currentCall = client.newCall(request)
+            currentCall?.enqueue(object : Callback {
                 override fun onFailure(call: Call, e: IOException) {
                     runOnUiThread {
                         hideProgressBar()
                         outputText.text.clear()
-                        outputText.setText("Failed to summarize: ${e.message}") }
+                        outputText.setText("Failed to summarize: ${e.message}")
+                    }
                 }
 
                 override fun onResponse(call: Call, response: Response) {
@@ -310,7 +368,8 @@ class MainActivity : AppCompatActivity(), UploadBottomSheetFragment.UploadBottom
                     runOnUiThread {
                         hideProgressBar()
                         outputText.text.clear()
-                        outputText.setText(body) }
+                        outputText.setText(body)
+                    }
                 }
             })
         } ?: run {
@@ -320,6 +379,7 @@ class MainActivity : AppCompatActivity(), UploadBottomSheetFragment.UploadBottom
         }
     }
 
+
     private fun generateTagline(data: String?) {
         if (!isConnected()) {
             runOnUiThread {
@@ -327,18 +387,33 @@ class MainActivity : AppCompatActivity(), UploadBottomSheetFragment.UploadBottom
             }
             return
         }
-        showProgressBar()
-        data?.let {
-                val encodedData = Uri.encode(it)
-            val url = "$BASE_URL/generatetagline/?data=$encodedData"
-            val request = Request.Builder().url(url).get().build()
 
-            client.newCall(request).enqueue(object : Callback {
+        showProgressBar()
+
+        data?.let {
+            // Create JSON payload
+            val jsonPayload = JSONObject().apply {
+                put("data", it)
+            }
+
+            // Create request body
+            val mediaType = "application/json; charset=utf-8".toMediaTypeOrNull()
+            val requestBody = jsonPayload.toString().toRequestBody(mediaType)
+
+            // Build POST request
+            val url = "$BASE_URL/generate_tagline/"
+            val request = Request.Builder()
+                .url(url)
+                .post(requestBody)
+                .build()
+            currentCall = client.newCall(request)
+            currentCall?.enqueue(object : Callback {
                 override fun onFailure(call: Call, e: IOException) {
                     runOnUiThread {
                         hideProgressBar()
                         outputText.text.clear()
-                        outputText.setText("Failed to generate tagline: ${e.message}") }
+                        outputText.setText("Failed to generate tagline: ${e.message}")
+                    }
                 }
 
                 override fun onResponse(call: Call, response: Response) {
@@ -346,7 +421,8 @@ class MainActivity : AppCompatActivity(), UploadBottomSheetFragment.UploadBottom
                     runOnUiThread {
                         hideProgressBar()
                         outputText.text.clear()
-                        outputText.setText(body) }
+                        outputText.setText(body)
+                    }
                 }
             })
         } ?: run {
@@ -356,11 +432,6 @@ class MainActivity : AppCompatActivity(), UploadBottomSheetFragment.UploadBottom
         }
     }
 
-//    private fun handleCustomOperation() {
-//        val data = inputText.text.toString()
-//        val query = "Sample query" // Replace with the actual query you need to use
-//        generateResponse(data, query)
-//    }
 
     private fun getSavedData(): String? {
         return when {
@@ -467,25 +538,39 @@ class MainActivity : AppCompatActivity(), UploadBottomSheetFragment.UploadBottom
             return
         }
         showProgressBar()
-        val encodedData = Uri.encode(data)
-        val encodedQuery = Uri.encode(query)
-        val url = "$BASE_URL/response/?data=$encodedData&query=$encodedQuery"
-        val request = Request.Builder().url(url).get().build()
 
-        client.newCall(request).enqueue(object : Callback {
+        // Create JSON payload
+        val jsonPayload = JSONObject()
+        jsonPayload.put("data", data)
+        jsonPayload.put("query", query)
+
+        // Create request body
+        val mediaType = "application/json; charset=utf-8".toMediaTypeOrNull()
+        val requestBody = jsonPayload.toString().toRequestBody(mediaType)
+
+        // Build POST request
+        val url = "$BASE_URL/response/"
+        val request = Request.Builder()
+            .url(url)
+            .post(requestBody)
+            .build()
+        currentCall = client.newCall(request)
+        currentCall?.enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) {
                 runOnUiThread {
                     hideProgressBar()
                     outputText.text.clear()
-                    outputText.setText("Failed to generate response: ${e.message}") }
+                    outputText.setText("Failed to generate response: ${e.message}")
+                }
             }
 
             override fun onResponse(call: Call, response: Response) {
-                val body = response.body?.string()
+                val body = response.body?.string()?.replace("\\n", "\n")
                 runOnUiThread {
                     hideProgressBar()
                     outputText.text.clear()
-                    outputText.setText(body) }
+                    outputText.setText(body)
+                }
             }
         })
     }
