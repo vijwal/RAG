@@ -6,4 +6,6 @@
     <string name="security_question_3">What was the name of your elementary school?</string>
     <string name="security_question_4">In what city were you born?</string>
     <string name="security_question_5">What was your first car?</string>
+    <string name="logout">Logout</string>
+
 </resources>

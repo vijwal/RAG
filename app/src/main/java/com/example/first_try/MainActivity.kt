@@ -8,6 +8,7 @@ import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.net.Uri
 import android.os.Build
+import android.widget.ImageButton
 import android.os.Bundle
 import android.provider.MediaStore
 import android.view.View
@@ -20,6 +21,9 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import android.os.Handler
+import androidx.activity.ComponentActivity
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.RequestBody.Companion.toRequestBody
@@ -55,14 +59,18 @@ class MainActivity : AppCompatActivity(), UploadBottomSheetFragment.UploadBottom
     private var uploadedWebsiteData: String? = null
     private var uploadedAudioData: String? = null
     private var uploadedImageData: String? = null
+    private lateinit var logoutButton: ImageButton
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        val splashScreen = installSplashScreen()
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-
+        Handler().postDelayed({ initializeUI() }, 3000)}
+    private fun initializeUI(){
         inputText = findViewById(R.id.input_text)
         outputText = findViewById(R.id.output_text)
         progressBar = findViewById(R.id.progressBar)
+
 
 //        outputText.setText(("output will be here"))
         // Make outputText non-editable
@@ -76,6 +84,7 @@ class MainActivity : AppCompatActivity(), UploadBottomSheetFragment.UploadBottom
         val longSummaryButton: Button = findViewById(R.id.button2)
         val generateTaglineButton: Button = findViewById(R.id.button3)
         val customButton: Button = findViewById(R.id.button4)
+        logoutButton = findViewById(R.id.logout_button)
 //        val youtubeButton: Button = findViewById(R.id.upload_youtube_button)
 //        val websiteButton: Button = findViewById(R.id.upload_website_button)
 //        val queryButton: Button = findViewById(R.id.button_query)
@@ -83,7 +92,9 @@ class MainActivity : AppCompatActivity(), UploadBottomSheetFragment.UploadBottom
         uploadFileButton.setOnClickListener {uploadBottomSheetFragment = UploadBottomSheetFragment() // Assign here
             uploadBottomSheetFragment?.show(supportFragmentManager, uploadBottomSheetFragment?.tag)
         }
-
+        logoutButton.setOnClickListener {
+            logout()
+        }
         clearButton.setOnClickListener {
             inputText.text.clear()
             outputText.text.clear()
@@ -100,7 +111,18 @@ class MainActivity : AppCompatActivity(), UploadBottomSheetFragment.UploadBottom
         customButton.setOnClickListener { showQueryDialog() }
     }
 
+    private fun logout() {
+        // Clear login info
+        val sharedPreferences = getSharedPreferences("user_prefs", MODE_PRIVATE)
+        val editor = sharedPreferences.edit()
+        editor.clear()
+        editor.apply()
 
+        // Redirect to login screen
+        val intent = Intent(this, loginactivity::class.java)
+        startActivity(intent)
+        finish()
+    }
     // Implementing UploadBottomSheetListener methods
     override fun onUploadPdf() {
         uploadBottomSheetFragment?.dismiss()

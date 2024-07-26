@@ -111,6 +111,7 @@ class SignupActivity : AppCompatActivity() {
     private fun redirectToLogin() {
         val intent = Intent(this, loginactivity::class.java)
         startActivity(intent)
+        overridePendingTransition(R.anim.fade_in, R.anim.fade_out)
         finish()
     }
 }

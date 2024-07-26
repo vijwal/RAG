@@ -71,12 +71,15 @@ class loginactivity : AppCompatActivity() {
         signupButton.setOnClickListener {
             val intent = Intent(this, SignupActivity::class.java)
             startActivity(intent)
+            overridePendingTransition(R.anim.fade_in, R.anim.fade_out)
+
         }
 
         // Forgot Password functionality
         forgotPasswordTextView.setOnClickListener {
             val intent = Intent(this, ForgotPasswordActivity::class.java)
             startActivity(intent)
+            overridePendingTransition(R.anim.fade_in, R.anim.fade_out)
         }
 
         // Check login status
@@ -103,6 +106,7 @@ class loginactivity : AppCompatActivity() {
             // User is logged in and the login is within the 30-day period
             val intent = Intent(this, MainActivity::class.java)
             startActivity(intent)
+            overridePendingTransition(R.anim.fade_in, R.anim.fade_out)
             finish()
         }
     }

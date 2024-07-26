@@ -76,6 +76,7 @@ class ForgotPasswordActivity : AppCompatActivity() {
                                 .addOnSuccessListener {
                                     Toast.makeText(this@ForgotPasswordActivity, "Password reset successful", Toast.LENGTH_SHORT).show()
                                     finish()
+                                    overridePendingTransition(R.anim.fade_in, R.anim.fade_out)
                                 }
                                 .addOnFailureListener {
                                     Toast.makeText(this@ForgotPasswordActivity, "Password reset failed", Toast.LENGTH_SHORT).show()
