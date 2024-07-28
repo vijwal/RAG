@@ -3,6 +3,7 @@ package com.example.first_try
 import android.Manifest
 import android.content.Context
 import android.content.Intent
+import android.content.ClipboardManager
 import android.content.pm.PackageManager
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
@@ -16,12 +17,16 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.ProgressBar
 import android.widget.Toast
+import android.widget.PopupWindow
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import android.os.Handler
+import android.util.Log
+import android.view.LayoutInflater
+import android.widget.TextView
 import androidx.activity.ComponentActivity
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import okhttp3.*
@@ -60,6 +65,7 @@ class MainActivity : AppCompatActivity(), UploadBottomSheetFragment.UploadBottom
     private var uploadedAudioData: String? = null
     private var uploadedImageData: String? = null
     private lateinit var logoutButton: ImageButton
+    private lateinit var copyAllButton: Button
 
     override fun onCreate(savedInstanceState: Bundle?) {
         val splashScreen = installSplashScreen()
@@ -85,6 +91,8 @@ class MainActivity : AppCompatActivity(), UploadBottomSheetFragment.UploadBottom
         val generateTaglineButton: Button = findViewById(R.id.button3)
         val customButton: Button = findViewById(R.id.button4)
         logoutButton = findViewById(R.id.logout_button)
+        copyAllButton = findViewById(R.id.copy_all_button)
+
 //        val youtubeButton: Button = findViewById(R.id.upload_youtube_button)
 //        val websiteButton: Button = findViewById(R.id.upload_website_button)
 //        val queryButton: Button = findViewById(R.id.button_query)
@@ -109,8 +117,46 @@ class MainActivity : AppCompatActivity(), UploadBottomSheetFragment.UploadBottom
 //        youtubeButton.setOnClickListener { showYoutubeLinkDialog() }
 //        websiteButton.setOnClickListener { showWebsiteLinkDialog() }
         customButton.setOnClickListener { showQueryDialog() }
+        inputText.setOnClickListener {
+            showScrollablePopup()
+        }
+        copyAllButton.setOnClickListener {
+            copyTextToClipboard()
+        }
+    }
+    private fun copyTextToClipboard() {
+        // Get the ClipboardManager
+        val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        // Create a ClipData object with the text from outputText EditText
+        val clip = android.content.ClipData.newPlainText("Copied Text", outputText.text.toString())
+        // Set the clip to the clipboard
+        clipboard.setPrimaryClip(clip)
+        // Show a toast message to indicate the text has been copied
+        Toast.makeText(this, "Text copied to clipboard", Toast.LENGTH_SHORT).show()
     }
 
+    private fun showScrollablePopup() {
+        // Inflate the custom layout for the dialog
+        val dialogView = layoutInflater.inflate(R.layout.dialog_input_text, null)
+        val editableTextView: EditText = dialogView.findViewById(R.id.dialog_text)
+        val okButton: Button = dialogView.findViewById(R.id.ok_button)
+
+        // Set the data to the EditText
+        editableTextView.setText(getSavedData())
+
+        // Create and show the dialog
+        val dialog = AlertDialog.Builder(this)
+            .setView(dialogView)
+            .create()
+
+        okButton.setOnClickListener {
+            // Save the edited text back to the inputText field
+            inputText.setText(editableTextView.text.toString())
+            dialog.dismiss()
+        }
+
+        dialog.show()
+    }
     private fun logout() {
         // Clear login info
         val sharedPreferences = getSharedPreferences("user_prefs", MODE_PRIVATE)
@@ -122,6 +168,7 @@ class MainActivity : AppCompatActivity(), UploadBottomSheetFragment.UploadBottom
         val intent = Intent(this, loginactivity::class.java)
         startActivity(intent)
         finish()
+        overridePendingTransition(R.anim.fade_in, R.anim.fade_out)
     }
     // Implementing UploadBottomSheetListener methods
     override fun onUploadPdf() {
@@ -417,11 +464,10 @@ class MainActivity : AppCompatActivity(), UploadBottomSheetFragment.UploadBottom
             val jsonPayload = JSONObject().apply {
                 put("data", it)
             }
-
+            Log.d("RequestPayload", jsonPayload.toString())
             // Create request body
             val mediaType = "application/json; charset=utf-8".toMediaTypeOrNull()
             val requestBody = jsonPayload.toString().toRequestBody(mediaType)
-
             // Build POST request
             val url = "$BASE_URL/generate_tagline/"
             val request = Request.Builder()
@@ -440,6 +486,7 @@ class MainActivity : AppCompatActivity(), UploadBottomSheetFragment.UploadBottom
 
                 override fun onResponse(call: Call, response: Response) {
                     val body = response.body?.string()?.replace("\\n", "\n")
+                    Log.d("ResponseBody", "Response body: $body")
                     runOnUiThread {
                         hideProgressBar()
                         outputText.text.clear()

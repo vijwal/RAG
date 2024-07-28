@@ -14,22 +14,22 @@
 
     <ImageButton
         android:id="@+id/logout_button"
-        android:layout_width="70dp"
-        android:layout_height="52dp"
+        android:layout_width="43dp"
+        android:layout_height="42dp"
         android:layout_marginTop="8dp"
         android:layout_marginEnd="4dp"
         android:layout_marginBottom="8dp"
-        android:background="?attr/selectableItemBackground"
+        android:background="@android:color/darker_gray"
         android:contentDescription="@string/logout"
         android:padding="13dp"
         android:scaleType="fitCenter"
         android:src="@drawable/ic_logout"
         app:layout_constraintBottom_toTopOf="@+id/button6"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="1.0"
+        app:layout_constraintHorizontal_bias="0.969"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/progressBar"
-        app:layout_constraintVertical_bias="0.0" />
+        app:layout_constraintVertical_bias="0.181" />
 
     <EditText
         android:id="@+id/input_text"
@@ -41,6 +41,12 @@
         android:hint="Enter text here"
         android:padding="8dp"
         android:scrollbars="vertical"
+        android:focusable="false"
+        android:focusableInTouchMode="false"
+        android:clickable="true"
+        android:inputType="none"
+        android:background="@drawable/border"
+        android:editable="false"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.488"
@@ -50,14 +56,29 @@
         app:layout_constraintWidth_default="percent"
         app:layout_constraintWidth_percent="0.8" />
 
+    <Button
+        android:id="@+id/copy_all_button"
+        android:layout_width="110dp"
+        android:layout_height="39dp"
+        android:layout_marginBottom="4dp"
+        android:text="Copy All"
+        app:layout_constraintBottom_toTopOf="@+id/output_text"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.95"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/button6"
+        app:layout_constraintVertical_bias="0.56" />
+
+    <!-- Buttons for summaries and actions -->
+
     <EditText
         android:id="@+id/output_text"
-        android:layout_width="359dp"
-        android:layout_height="220dp"
+        android:layout_width="365dp"
+        android:layout_height="188dp"
         android:layout_marginStart="6dp"
+        android:layout_marginTop="6dp"
         android:layout_marginEnd="6dp"
-        android:layout_marginBottom="136dp"
-        android:background="#000000"
+        android:layout_marginBottom="128dp"
         android:cursorVisible="false"
         android:focusable="false"
         android:focusableInTouchMode="false"
@@ -65,6 +86,7 @@
         android:hint="Output text"
         android:inputType="textMultiLine"
         android:longClickable="true"
+        android:background="@drawable/border"
         android:maxLines="100"
         android:minLines="1"
         android:padding="8dp"
@@ -75,10 +97,10 @@
         app:layout_constraintBottom_toTopOf="@+id/input_text"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/copy_all_button"
         app:layout_constraintWidth_default="percent"
         app:layout_constraintWidth_percent="0.8" />
 
-    <!-- Buttons for summaries and actions -->
     <Button
         android:id="@+id/button1"
         android:layout_width="0dp"
@@ -181,7 +203,7 @@
         app:layout_constraintHorizontal_bias="1.0"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.076"
+        app:layout_constraintVertical_bias="0.054"
         app:layout_constraintWidth_default="percent"
         app:layout_constraintWidth_percent="0.8" />
 
